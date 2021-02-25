@@ -330,9 +330,14 @@ export default class App extends Component{
                     </div>:
                     <div>
                         <h4 style={{color: 'blue'}}>First take the presence, then click on Draw !</h4>
+                        { listWithPresence.length > 0 ?
                         <div>
                             {showTeam}
-                        </div>
+                        </div>:
+                            <h6>
+                                The list of members will be displayed here
+                            </h6>
+                        }
                     </div>}
                 {!displayDraw?
                     <div style = {{display:'flex'}}>
@@ -344,6 +349,12 @@ export default class App extends Component{
                         <div>
                             <button style={styles.buttonStyle} onClick={() => this.setState({isAdding: true, errorMessage: ''})}>
                                 Add member
+                            </button>
+                        </div>
+                        <div>
+                            <button style={{...styles.buttonStyle, backgroundColor:'red'}}
+                                    onClick={() => this.setState({listWithPresence: []})}>
+                                Delete the list
                             </button>
                         </div>
                     </div> :
