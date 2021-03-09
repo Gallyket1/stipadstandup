@@ -99,8 +99,9 @@ export default class App extends Component{
                 listWithPresence: JSON.parse(existingList)
             })
         }else{
-            let teamList = ['Ali', 'Abdessadik', 'Bert', 'Eddy', 'Filip',
-                'Gaël', 'Huguette', 'Jonathan', 'John', 'Kristof', 'Mamadou', 'Michel', 'Soufyane']
+            let teamList = ['Ali', 'Bert', 'Eddy', 'Filip',
+                'Gaël', 'Huguette', 'Jonathan', 'John', 'Kristof', 'Mamadou',
+                'Michel', 'Soufyane', 'Glen', 'Wim', 'Varun']
             let{listWithPresence} = this.state
             for(let i = 0; i < teamList.length; i++) {
                 let id = i + 1
