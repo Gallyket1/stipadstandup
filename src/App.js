@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import './App.css';
+import * as moment from "moment";
 
 export default class App extends Component{
     constructor(props) {
@@ -140,7 +141,7 @@ export default class App extends Component{
                     loading: false
                 })
             )
-        }, 1500)
+        }, 2000)
         this.storeList(listWithPresence)
     }
 
@@ -209,7 +210,7 @@ export default class App extends Component{
     }
 
     render() {
-        let dateToday = new Date();
+        let dateToday = moment().format("DD-MM-YYYY");
         let {displayDraw, listWithPresence, loading, isAdding, errorMessage,
             timeSec, timeMin, isClockRunning, showTimeUp, indexForBold} = this.state;
         let warningTime = timeMin === 0 && timeSec < 30
@@ -298,18 +299,10 @@ export default class App extends Component{
         if(loading){
             return(
                 <div style = {{margin: 100}}>
-                    <div style = {{color: 'indianred', fontWeight: 'bold', margin: 15}}>
+                    <div style = {{color: 'indianred', fontWeight: 'bold', margin: 15, textAlign: 'center'}}>
                         <h3>Drawing...</h3>
                     </div>
-                    <div className="spinner-grow text-muted"></div>
-                    <div className="spinner-grow text-primary"></div>
-                    <div className="spinner-grow text-success"></div>
-                    <div className="spinner-grow text-info"></div>
-                    <div className="spinner-grow text-warning"></div>
-                    <div className="spinner-grow text-danger"></div>
-                    <div className="spinner-grow text-secondary"></div>
-                    <div className="spinner-grow text-dark"></div>
-                    <div className="spinner-grow text-light"></div>
+                    <img src="https://media.giphy.com/media/Ps8XflhsT5EVa/giphy.gif" alt="this slowpoke moves" />
                 </div>
             )
         }
@@ -319,13 +312,12 @@ export default class App extends Component{
         return (
             <div style = {styles.content}>
                 <h2 style = {{color: 'indianred'}}>
-                    Welcome to the STIPAD stand up draw
+                    Welcome to the STIPAD stand-up draw!
                 </h2>
                 {displayDraw?
                     <div>
                         <h4 style={{color: 'blue'}}>
-                            {`The order of the stand up for today 
-              (${dateToday.getDate()}/${dateToday.getMonth() + 1}/${dateToday.getFullYear()}) is: `}
+                            {`The order of the stand-up for today (${dateToday}) is: `}
                         </h4>
                         {showDraw}
                     </div>:
