@@ -141,7 +141,7 @@ export default class App extends Component{
                     loading: false
                 })
             )
-        }, 2000)
+        }, 3000)
         this.storeList(listWithPresence)
     }
 
