@@ -101,8 +101,8 @@ export default class App extends Component{
             })
         }else{
             let teamList = ['Ali', 'Bert', 'Eddy', 'Filip',
-                'Gaël', 'Huguette', 'Jonathan', 'John', 'Kristof', 'Mamadou',
-                'Michel', 'Soufyane', 'Glen', 'Wim', 'Varun']
+                'Gaël', 'Huguette', 'Jonathan', 'John', 'Mamadou', 'Medhi',
+                'Michel', 'Soufyane', 'Tussem', 'Glen', 'Wim', 'Varun']
             let{listWithPresence} = this.state
             for(let i = 0; i < teamList.length; i++) {
                 let id = i + 1
