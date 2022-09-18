@@ -1,6 +1,8 @@
 import React, {Component} from 'react';
 import './App.css';
 import * as moment from "moment";
+import {addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, where} from "@firebase/firestore";
+import {db} from "./firebase-init";
 
 export default class App extends Component{
     constructor(props) {
@@ -26,6 +28,62 @@ export default class App extends Component{
         }
     }
 
+    upateMetiersList() {
+        this.setState({
+            loading: true
+        })
+        const q = query(collection(db, "stipadList"));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const list = [];
+            querySnapshot.forEach((doc) => {
+                let docu = doc.data()
+                let elem = {
+                    genId: doc.id,
+                    name: docu.name,
+                    stipId: Number(docu.stipId),
+                    present: docu.present,
+                }
+
+                list.push(elem);
+            });
+            this.setState({
+                listWithPresence: list,
+                loading: false
+            })
+        });
+    }
+
+    addDocToFireBase = async(elemToSend, firebaseCollection, xObject) => {
+        xObject.setState({
+            loading: true,
+            doneFirebase: false
+        })
+
+        const collectionRef = collection(db, firebaseCollection);
+        if(elemToSend.genId){
+            await setDoc(doc(db, firebaseCollection, elemToSend.genId), elemToSend)
+                .catch(err => {
+                    xObject.setState({
+                        error: err
+                    })
+                });
+        }else{
+            await addDoc(collectionRef, elemToSend)
+                .catch(err => {
+                    xObject.setState({
+                        error: err
+                    })
+                });
+        }
+        xObject.setState({
+            loading: false,
+            doneFirebase: true
+        })
+        xObject.setState({
+            loading: false,
+            doneFirebase: true
+        })
+    }
 
     dispTimeUp = () => {
         let blink = !this.state.showTimeUp;
@@ -94,21 +152,21 @@ export default class App extends Component{
     }
 
     componentDidMount() {
-        if(localStorage.getItem("StipadList")){
+        /*if(localStorage.getItem("StipadList")){
             let existingList = localStorage.getItem("StipadList")
             this.setState({
                 listWithPresence: JSON.parse(existingList)
             })
         }else{
-            let teamList = ['Ali', 'Bert', 'Eddy', 'Filip',
-                'Gaël', 'Huguette', 'Jonathan', 'John', 'Mamadou', 'Medhi',
-                'Michel', 'Soufyane', 'Tussem', 'Glen', 'Wim', 'Varun']
+            let teamList = ['Bert', 'Filip',
+                'Gaël', 'Brecht', 'Joachim', 'John', 'Mamadou', 'Mehdi',
+                'Michel', 'Soufyane', 'Ekrem', 'Glen', 'Wim', 'Aymen', 'Ibrahim']
             let{listWithPresence} = this.state
             for(let i = 0; i < teamList.length; i++) {
-                let id = i + 1
+                let stipId = i + 1
                 let name = teamList[i];
                 let present= 'present'
-                listWithPresence[i] = {id, name, present}
+                listWithPresence[i] = {stipId, name, present}
             }
             this.setState({
                 listWithPresence
@@ -116,7 +174,8 @@ export default class App extends Component{
         }
         setInterval(() => {
             this.dispTimeUp()
-        }, 500)
+        }, 500)*/
+        this.upateMetiersList()
     }
 
     shuffle(a) {
@@ -143,17 +202,18 @@ export default class App extends Component{
             )
         }, 3000)
         this.storeList(listWithPresence)
+        listWithPresence.forEach(x => this.addDocToFireBase(x, 'stipadList', this))
     }
 
     storeList = (list) => {
         localStorage.setItem("StipadList", JSON.stringify(list));
     }
 
-    updtePresence = (id, event) => {
+    updtePresence = (stipId, event) => {
         let presenceStatus = event.target.value
         console.log(presenceStatus)
         let clonedListWithPresence = [...this.state.listWithPresence]
-        let memberInMofif = clonedListWithPresence.filter(member => member.id === id)[0];
+        let memberInMofif = clonedListWithPresence.filter(member => member.stipId === stipId)[0];
         memberInMofif.present = presenceStatus;
         this.setState({
             listWithPresence: clonedListWithPresence
@@ -176,7 +236,7 @@ export default class App extends Component{
             return;
         }
 
-        let newStipadMemner = {id: Date.now(), name: newMember, present: 'present'};
+        let newStipadMemner = {stipId: Date.now(), name: newMember, present: 'present'};
         listWithPresence.push(newStipadMemner);
         this.setState({
             listWithPresence,
@@ -184,16 +244,21 @@ export default class App extends Component{
             isAdding: false
         })
     }
-    deleteMember = (id) => {
-        let firstNameToDelete = this.state.listWithPresence.find(member => member.id === id).name
+    deleteMember = async (stipId) => {
+        let firstNameToDelete = this.state.listWithPresence.find(member => member.stipId === stipId).name
         const confirmation = window.confirm(`Are you sure you want to delete ${firstNameToDelete} ?`)
-        if(!confirmation){
+        if (!confirmation) {
             return;
         }
-        let newList = this.state.listWithPresence.filter(member => member.id !== id)
+        let newList = this.state.listWithPresence.filter(member => member.stipId !== stipId)
+        let elem = this.state.listWithPresence.find(member => member.stipId === stipId)
+        if (elem.genId) {
+            await deleteDoc(doc(db, "stipadList", elem.genId));
+        }
         this.setState({
             listWithPresence: newList
         })
+
         this.storeList(newList);
 
     }
@@ -225,18 +290,18 @@ export default class App extends Component{
                     <select
                         defaultValue={member.present}
                         style = {styles.selectStyle}
-                        onChange={(event) => {this.updtePresence(member.id, event)}}>
+                        onChange={(event) => {this.updtePresence(member.stipId, event)}}>
                         <option value={"present"}>present</option>
                         <option value={"absent"}>absent</option>
                     </select>
                 </div>
-                <span onClick={() => this.deleteMember(member.id)}
+                <span onClick={() => this.deleteMember(member.stipId)}
                       title={"Delete"}
-                      style={{cursor: "pointer", fontWeight: indexForBold === member.id ? "bold" : ""}}
-                      onMouseMove={() => this.setState({indexForBold: member.id})}
+                      style={{cursor: "pointer", fontWeight: indexForBold === member.stipId ? "bold" : ""}}
+                      onMouseMove={() => this.setState({indexForBold: member.stipId})}
                       onMouseLeave={() => this.setState({indexForBold:''})}
                 >
-                    {indexForBold === member.id ? 'X' : 'x'}
+                    {indexForBold === member.stipId ? 'X' : 'x'}
                 </span>
             </div>)
         let showDraw = listWithPresence.filter(x => x.present === 'present').map((member, index) =>
