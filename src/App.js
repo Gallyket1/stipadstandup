@@ -92,7 +92,7 @@ export default class App extends Component{
         })
     }
     
-    resetTime= () => {
+    resetTime = () => {
         this.setState({
             timeMin: this.initialTime.timeMin,
             timeSec: this.initialTime.timeSec
@@ -450,8 +450,8 @@ export default class App extends Component{
                             Next
                         </button>
                         <button
-                            style={{...styles.buttonStyle, backgroundColor:'yellow'}}
-                            onClick={() => this.standUpDone()}>
+                            style={{...styles.buttonStyle, backgroundColor:'orange'}}
+                            onClick={() => this.resetTime()}>
                             Reset timer
                         </button>
                     </div>
