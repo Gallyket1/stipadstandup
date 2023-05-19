@@ -179,7 +179,8 @@ export default class App extends Component{
     }
 
     shuffle(a) {
-        [a[0], a[3]] = [a[3], a[0]];
+       
+        let previousFirst = a[0].genId
         let drawIndex = 0;
         while(drawIndex < 250){
             for (let i = a.length - 1; i > 0; i--) {
@@ -188,7 +189,9 @@ export default class App extends Component{
         }
             drawIndex++;
      }
-       
+       if(previousFirst === a[0].genId){
+           [a[0], a[2]] = [a[2], a[0]];
+       }
         return a;
    }
 
