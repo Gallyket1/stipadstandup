@@ -179,6 +179,7 @@ export default class App extends Component{
     }
 
     shuffle(a) {
+        [a[0], a[3]] = [a[3], a[0]];
         let drawIndex = 0;
         while(drawIndex < 250){
             for (let i = a.length - 1; i > 0; i--) {
