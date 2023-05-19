@@ -179,12 +179,17 @@ export default class App extends Component{
     }
 
     shuffle(a) {
-        for (let i = a.length - 1; i > 0; i--) {
+        let drawIndex = 0;
+        while(drawIndex < 250){
+            for (let i = a.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [a[i], a[j]] = [a[j], a[i]];
         }
+            drawIndex++;
+     }
+       
         return a;
-    }
+   }
 
     draw = () => {
         let {listWithPresence} = this.state;
