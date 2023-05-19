@@ -91,7 +91,14 @@ export default class App extends Component{
             showTimeUp: blink
         })
     }
-
+    
+    resetTime= () => {
+        this.setState({
+            timeMin: this.initialTime.timeMin,
+            timeSec: this.initialTime.timeSec
+        })
+    }
+    
     setSpeakingTime = () => {
         this.setState({
             isClockRunning: true
@@ -441,6 +448,11 @@ export default class App extends Component{
                             style={{...styles.buttonStyle, backgroundColor:'green'}}
                             onClick={() => this.nextSpeaker()}>
                             Next
+                        </button>
+                        <button
+                            style={{...styles.buttonStyle, backgroundColor:'yellow'}}
+                            onClick={() => this.standUpDone()}>
+                            Reset timer
                         </button>
                     </div>
                     }
