@@ -93,6 +93,7 @@ export default class App extends Component{
     }
     
     resetTime = () => {
+        this.pauseSpeakers()
         this.setState({
             timeMin: this.initialTime.timeMin,
             timeSec: this.initialTime.timeSec
@@ -189,7 +190,7 @@ export default class App extends Component{
        
         let previousFirst = a[0].genId
         let drawIndex = 0;
-        while(drawIndex < 250){
+        while(drawIndex < 10000){
             for (let i = a.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [a[i], a[j]] = [a[j], a[i]];
