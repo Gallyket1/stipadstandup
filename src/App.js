@@ -42,6 +42,7 @@ export default class App extends Component{
                     name: docu.name,
                     stipId: Number(docu.stipId),
                     present: docu.present,
+                    order: docu.order,
                 }
 
                 list.push(elem);
@@ -188,18 +189,25 @@ export default class App extends Component{
 
     shuffle(a) {
        
-        let previousFirst = a[0].genId
+        let previousFirst = a.find(x => x.order === 1)
         let drawIndex = 0;
         while(drawIndex < 10000){
             for (let i = a.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [a[i], a[j]] = [a[j], a[i]];
+            //a[i].order = i
         }
             drawIndex++;
      }
-       if(previousFirst === a[0].genId){
-           [a[0], a[2]] = [a[2], a[0]];
-       }
+     for(let i = 0; i < a.length; i++){
+         a[i].order = i + 1;
+     }
+     if(previousFirst && previousFirst.genId === a[0].genId){
+         [a[0], a[a.length-1]] = [a[a.length-1], a[0]];
+     }
+       /*if(previousFirst && previousFirst.genId === a[0].genId){
+           [a[0], a[a.length - 1]] = [a[a.length - 1], a[0]];
+       }*/
         return a;
    }
 
@@ -321,7 +329,7 @@ export default class App extends Component{
                     {indexForBold === member.stipId ? 'X' : 'x'}
                 </span>
             </div>)
-        let showDraw = listWithPresence.filter(x => x.present === 'present').map((member, index) =>
+        let showDraw = listWithPresence.sort((a, b) => a.order - b.order).filter(x => x.present === 'present').map((member, index) =>
             <div style={this.state.whoSpeaks === index? styles.main.inSpeech: styles.main.normal} key={index}>
                 <div style={styles.names}>
                     <span style = {{fontWeight: 'bold', color: 'green'}}>{`${index + 1}.  ${member.name}`}</span>
