@@ -4,6 +4,7 @@ import * as moment from "moment";
 import {addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, where} from "@firebase/firestore";
 import {db} from "./firebase-init";
 
+
 export default class App extends Component{
     constructor(props) {
         super(props);
@@ -25,7 +26,8 @@ export default class App extends Component{
             drawTeams : [],
             newTeamName: '',
             selectedTeam: '',
-            teamInCreation: true
+            teamInCreation: true,
+            newMembers : []
         }
         this.initialTime = {
             timeMin: 1,
@@ -37,6 +39,17 @@ export default class App extends Component{
             teamInCreation: true,
             selectedTeam: this.state.newTeamName
         })
+    }
+
+    storeTeamName = (event) => {
+        localStorage.setItem("selectedTeam", event.target.value)
+    }
+    getSelectedTeamFromLocal = () => {
+        if (localStorage.getItem("selectedTeam")) {
+            this.setState({
+                selectedTeam : localStorage.getItem("selectedTeam")
+            })
+        }
     }
 
     upateMetiersList() {
@@ -54,7 +67,7 @@ export default class App extends Component{
                 let elem = {
                     genId: doc.id,
                     name: docu.name,
-                    stipId: Number(docu.stipId),
+                    stipId: (docu.stipId),
                     present: docu.present,
                     order: docu.order,
                     teamName: docu.teamName
@@ -180,11 +193,12 @@ export default class App extends Component{
     }
 
     nextSpeaker = () => {
+        let{selectedTeam} = this.state
         this.setState({
             timeMin: this.initialTime.timeMin,
             timeSec: this.initialTime.timeSec
         })
-        let effectif = this.state.listWithPresence.filter(x => x.present === 'present').length;
+        let effectif = this.state.listWithPresence.filter(x => x.present === 'present').filter(x => x.teamName === selectedTeam).length;
         if(this.state.whoSpeaks === effectif - 1){
             this.setState({
                 whoSpeaks: 0
@@ -227,6 +241,7 @@ export default class App extends Component{
         setInterval(() => {
             this.dispTimeUp()
         }, 500)*/
+        this.getSelectedTeamFromLocal()
         this.loadTeams()
         this.upateMetiersList()
     }
@@ -314,9 +329,14 @@ export default class App extends Component{
             });
             return;
         }
+        let members = newMember.split(',');
 
-        let newStipadMemner = {stipId: Date.now(), name: newMember, present: 'present', teamName: selectedTeam};
-        listWithPresence.push(newStipadMemner);
+        //let newStipadMemner = {stipId: uuidv4(), name: newMember, present: 'present', teamName: selectedTeam};
+        members.forEach(x => {
+            let stipId = Date.now() + Math.random().toString(36).substr(2, 9);
+            let newMember = {stipId, name: x.trim(), present: 'present', teamName: selectedTeam};
+            listWithPresence.push(newMember);
+        });
         this.setState({
             listWithPresence: listWithPresence,
             newMember: '',
@@ -367,7 +387,8 @@ export default class App extends Component{
         let {displayDraw, listWithPresence, loading, isAdding, errorMessage,
             timeSec, timeMin, isClockRunning, showTimeUp, indexForBold, newTeamName, selectedTeam} = this.state;
         let warningTime = timeMin === 0 && timeSec < 30
-        let showTeam = listWithPresence.filter(x => x.teamName === selectedTeam).map((member, index) =>
+        let filteredTeam = listWithPresence.filter(x => x.teamName === selectedTeam)
+        let showTeam = filteredTeam.map((member, index) =>
             <div style={{flexDirection: 'row', display: 'flex', flex: 1, }} key={index}>
                 <div style={styles.names}>
                     <span style = {{fontWeight: 'bold', color: member.present === 'absent'? 'red': 'black'}}>
@@ -393,7 +414,7 @@ export default class App extends Component{
                     {indexForBold === member.stipId ? 'X' : 'x'}
                 </span>
             </div>)
-        let showDraw = listWithPresence.filter(x => x.teamName === selectedTeam).sort((a, b) => a.order - b.order).filter(x => x.present === 'present').map((member, index) =>
+        let showDraw = filteredTeam.sort((a, b) => a.order - b.order).filter(x => x.present === 'present').map((member, index) =>
             <div style={this.state.whoSpeaks === index? styles.main.inSpeech: styles.main.normal} key={index}>
                 <div style={styles.names}>
                     <span style = {{fontWeight: 'bold', color: 'green'}}>{`${index + 1}.  ${member.name}`}</span>
@@ -416,37 +437,37 @@ export default class App extends Component{
 
         let addingMember = (
             <div style={{
-                margin: 30,
-                border: '1px solid green',
-                height: 350,
-                width: 300,
+                marginTop: 30,
+
                 alignItems: 'center',
                 justifyItems: 'center', padding: 10,}}>
                 <div>
-                    <h3 style = {{color: 'blue'}}>ADDING A MEMBER</h3>
+                    <h3 style = {{color: 'blue'}}>ADDING NEW MEMBERS</h3>
                 </div>
+                <h6 className={'alert-danger'}>Please enter the members' first names, separated by commas.</h6>
                 {errorMessage &&
                     <p style = {{color: 'red'}}>{errorMessage}</p>}
                 <div style={{marginTop: 70, display: 'flex'}}>
                     <div>
                         <input
+                            style={{width: 500}}
                             className={'form-control'}
-                            placeholder={"Member's first name"}
+                            placeholder={"Member's first names separated by commas"}
                             type="text"
                             onChange={(event) => this.handleChange(event)}/>
                     </div>
-                    <div style = {{marginLeft: 20}}>
-                        <button onClick={() => this.addMember()} className={'btn btn-success'}>
-                            Add
-                        </button>
-                    </div>
                 </div>
-                <div style={{margin: 30}}>
+                <div style={{margin: 30, flexDirection: "row", display: "flex"}}>
                     <button
                         className={'btn btn-danger'}
                         onClick={() => this.setState({isAdding: false})}>
                         Cancel
                     </button>
+                    <div style={{marginLeft: 20}}>
+                        <button onClick={() => this.addMember()} className={'btn btn-success'}>
+                            Add
+                        </button>
+                    </div>
                 </div>
             </div>
         )
@@ -458,7 +479,10 @@ export default class App extends Component{
                 <br/>
                 <div style={styles.names}>
                     <select className={'form-select-lg'}
-                            onChange={(event) => this.handleGenChange(event, 'selectedTeam')}>
+                            onChange={(event) => {
+                                this.handleGenChange(event, 'selectedTeam');
+                                this.storeTeamName(event)
+                            }}>
                         <option value="">Select a team</option>
                         {this.state.drawTeams.map((team, index) => (
                             <option key={index} value={team.name}>{team.name}</option>
@@ -496,33 +520,41 @@ export default class App extends Component{
                         </h4>
                         {showDraw}
                     </div> :
-                    <div>
-                        <h4 style={{color: 'blue'}}>First take the presence, then click on Draw !</h4>
-                        {listWithPresence.length > 0 ?
+                    <div style={{justifyContent: 'center', textAlign: "center"}}>
+                        <h4>
+                            {filteredTeam.length > 0 ? 'First take the presence, then click on Draw !' : 'Please add members to the team'}
+                        </h4>
+                        {filteredTeam.length > 0 ?
                             <div>
                                 {showTeam}
                             </div> :
                             <h6>
-                                The list of members will be displayed here
+
                             </h6>
                         }
                     </div>}
                 {!displayDraw ?
                     <div style={{display: 'flex'}}>
                         <div>
-                            <button className={'btn btn-success'} style={styles.buttonStyle} onClick={() => this.draw()}>
+                            <button disabled={filteredTeam.length === 0} className={'btn btn-success'} style={styles.buttonStyle} onClick={() => this.draw()}>
+                                <i className="fa fa-random" aria-hidden="true"></i>
+                                &nbsp;
                                 Draw
                             </button>
                         </div>
                         <div>
                             <button className={'btn btn-dark'} style={styles.buttonStyle}
                                     onClick={() => this.setState({isAdding: true, errorMessage: ''})}>
-                                Add member
+                                <i className="fa fa-plus-circle" aria-hidden="true"></i>
+                                &nbsp;
+                                Add members
                             </button>
                         </div>
                         <div>
                             <button className={'btn btn-danger'} style={{...styles.buttonStyle}}
                                     onClick={() => this.setState({selectedTeam: '', newTeamName: ''})}>
+                                <i className="fa fa-home" aria-hidden="true"></i>
+                                &nbsp;
                                 Home screen
                             </button>
                         </div>
