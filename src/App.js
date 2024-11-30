@@ -20,19 +20,33 @@ export default class App extends Component{
             isClockRunning: false,
             listOfPreviousSpeakers: [],
             showTimeUp: true,
-            indexForBold: ''
+            indexForBold: '',
+            readyToDraw: false,
+            drawTeams : [],
+            newTeamName: '',
+            selectedTeam: '',
+            teamInCreation: true
         }
         this.initialTime = {
             timeMin: 1,
             timeSec: 30
         }
     }
+    beginTeamCreation = () => {
+        this.setState({
+            teamInCreation: true,
+            selectedTeam: this.state.newTeamName
+        })
+    }
 
     upateMetiersList() {
+        let {selectedTeam} = this.state
         this.setState({
             loading: true
         })
-        const q = query(collection(db, "stipadList"));
+        const q = selectedTeam
+            ? query(collection(db, "stipadList"), where("teamName", "==", selectedTeam))
+            : query(collection(db, "stipadList"));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const list = [];
             querySnapshot.forEach((doc) => {
@@ -43,12 +57,40 @@ export default class App extends Component{
                     stipId: Number(docu.stipId),
                     present: docu.present,
                     order: docu.order,
+                    teamName: docu.teamName
                 }
 
                 list.push(elem);
             });
             this.setState({
                 listWithPresence: list,
+                loading: false
+            })
+        });
+    }
+/*    componentDidUpdate(prevProps, prevState) {
+        if (prevState.selectedTeam !== this.state.selectedTeam && !this.state.loading) {
+            this.upateMetiersList();
+        }
+    }*/
+    loadTeams() {
+        this.setState({
+            loading: true
+        })
+        const q = query(collection(db, "drawTeams"));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const list = [];
+            querySnapshot.forEach((doc) => {
+                let docu = doc.data()
+                let elem = {
+                    genId: doc.id,
+                    name: docu.nom,
+                }
+
+                list.push(elem);
+            });
+            this.setState({
+                drawTeams: list,
                 loading: false
             })
         });
@@ -69,6 +111,7 @@ export default class App extends Component{
                     })
                 });
         }else{
+            console.log(elemToSend)
             await addDoc(collectionRef, elemToSend)
                 .catch(err => {
                     xObject.setState({
@@ -92,7 +135,7 @@ export default class App extends Component{
             showTimeUp: blink
         })
     }
-    
+
     resetTime = () => {
         this.pauseSpeakers()
         this.setState({
@@ -100,7 +143,7 @@ export default class App extends Component{
             timeSec: this.initialTime.timeSec
         })
     }
-    
+
     setSpeakingTime = () => {
         this.setState({
             isClockRunning: true
@@ -111,17 +154,17 @@ export default class App extends Component{
                 timeSec: 59
             })
         }else if(this.state.timeSec === 0 && this.state.timeMin === 0){
-           /* this.setState({
-                timeMin: this.initialTime.timeMin,
-                timeSec: this.initialTime.timeSec
-            })*/
+            /* this.setState({
+                 timeMin: this.initialTime.timeMin,
+                 timeSec: this.initialTime.timeSec
+             })*/
             this.pauseSpeakers()
         }else{
             if(this.state.isClockRunning){
                 return
             }
             this.IntervalId = setInterval(() =>{
-               this.countDown()
+                this.countDown()
             }, 1000)
         }
     }
@@ -184,35 +227,36 @@ export default class App extends Component{
         setInterval(() => {
             this.dispTimeUp()
         }, 500)*/
+        this.loadTeams()
         this.upateMetiersList()
     }
 
     shuffle(a) {
-       
+
         let previousFirst = a.find(x => x.order === 1)
         let drawIndex = 0;
         while(drawIndex < 10000){
             for (let i = a.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [a[i], a[j]] = [a[j], a[i]];
-            //a[i].order = i
-        }
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+                //a[i].order = i
+            }
             drawIndex++;
-     }
-     for(let i = 0; i < a.length; i++){
-         a[i].order = i + 1;
-     }
-     if(previousFirst && previousFirst.genId === a[0].genId){
-         [a[0], a[a.length-1]] = [a[a.length-1], a[0]];
-     }
-       /*if(previousFirst && previousFirst.genId === a[0].genId){
-           [a[0], a[a.length - 1]] = [a[a.length - 1], a[0]];
-       }*/
+        }
+        for(let i = 0; i < a.length; i++){
+            a[i].order = i + 1;
+        }
+        if(previousFirst && previousFirst.genId === a[0].genId){
+            [a[0], a[a.length-1]] = [a[a.length-1], a[0]];
+        }
+        /*if(previousFirst && previousFirst.genId === a[0].genId){
+            [a[0], a[a.length - 1]] = [a[a.length - 1], a[0]];
+        }*/
         return a;
-   }
+    }
 
     draw = () => {
-        let {listWithPresence} = this.state;
+        let {listWithPresence, newTeamName} = this.state;
         this.shuffle(listWithPresence);
         this.setState({
             listWithPresence,
@@ -228,6 +272,10 @@ export default class App extends Component{
         }, 3000)
         this.storeList(listWithPresence)
         listWithPresence.forEach(x => this.addDocToFireBase(x, 'stipadList', this))
+        if (newTeamName) {
+            let newTeam = {nom: newTeamName}
+            this.addDocToFireBase(newTeam, 'drawTeams', this)
+        }
     }
 
     storeList = (list) => {
@@ -251,9 +299,15 @@ export default class App extends Component{
             errorMessage: ''
         })
     }
+    handleGenChange = (event, field) => {
+        this.setState({
+            [field]: event.target.value,
+            errorMessage: ''
+        })
+    }
 
     addMember = () => {
-        let {newMember, listWithPresence} = this.state;
+        let {newMember, listWithPresence, selectedTeam} = this.state;
         if(newMember.length < 2){
             this.setState({
                 errorMessage: 'Please enter a valid first name.'
@@ -261,10 +315,10 @@ export default class App extends Component{
             return;
         }
 
-        let newStipadMemner = {stipId: Date.now(), name: newMember, present: 'present'};
+        let newStipadMemner = {stipId: Date.now(), name: newMember, present: 'present', teamName: selectedTeam};
         listWithPresence.push(newStipadMemner);
         this.setState({
-            listWithPresence,
+            listWithPresence: listWithPresence,
             newMember: '',
             isAdding: false
         })
@@ -287,6 +341,14 @@ export default class App extends Component{
         this.storeList(newList);
 
     }
+    specialUpdate = () => {
+        let {listWithPresence} = this.state
+        listWithPresence.forEach(x => {
+            x.teamName ='Stipad/Patmgt'
+            this.addDocToFireBase(x, 'stipadList', this)
+        })
+
+    }
     standUpDone = () => {
         this.setState({
             displayDraw: false,
@@ -299,12 +361,13 @@ export default class App extends Component{
 
     }
 
+
     render() {
         let dateToday = moment().format("DD-MM-YYYY");
         let {displayDraw, listWithPresence, loading, isAdding, errorMessage,
-            timeSec, timeMin, isClockRunning, showTimeUp, indexForBold} = this.state;
+            timeSec, timeMin, isClockRunning, showTimeUp, indexForBold, newTeamName, selectedTeam} = this.state;
         let warningTime = timeMin === 0 && timeSec < 30
-        let showTeam = listWithPresence.map((member, index) =>
+        let showTeam = listWithPresence.filter(x => x.teamName === selectedTeam).map((member, index) =>
             <div style={{flexDirection: 'row', display: 'flex', flex: 1, }} key={index}>
                 <div style={styles.names}>
                     <span style = {{fontWeight: 'bold', color: member.present === 'absent'? 'red': 'black'}}>
@@ -313,12 +376,13 @@ export default class App extends Component{
                 </div>
                 <div style={styles.names}>
                     <select
+                        className={'form-select-sm'}
                         defaultValue={member.present}
-                        style = {styles.selectStyle}
                         onChange={(event) => {this.updtePresence(member.stipId, event)}}>
                         <option value={"present"}>present</option>
                         <option value={"absent"}>absent</option>
                     </select>
+                    <br/>
                 </div>
                 <span onClick={() => this.deleteMember(member.stipId)}
                       title={"Delete"}
@@ -329,17 +393,17 @@ export default class App extends Component{
                     {indexForBold === member.stipId ? 'X' : 'x'}
                 </span>
             </div>)
-        let showDraw = listWithPresence.sort((a, b) => a.order - b.order).filter(x => x.present === 'present').map((member, index) =>
+        let showDraw = listWithPresence.filter(x => x.teamName === selectedTeam).sort((a, b) => a.order - b.order).filter(x => x.present === 'present').map((member, index) =>
             <div style={this.state.whoSpeaks === index? styles.main.inSpeech: styles.main.normal} key={index}>
                 <div style={styles.names}>
                     <span style = {{fontWeight: 'bold', color: 'green'}}>{`${index + 1}.  ${member.name}`}</span>
                 </div>
-                {this.state.whoSpeaks === index?
+                {this.state.whoSpeaks === index ?
                     <div style = {styles.names}>
                         {timeMin + timeSec > 0?
                             <span style = {{fontWeight: 'bold', color: warningTime?'red': 'black', fontSize: 18}}>
-                            {timeMin.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) +
-                            ":" + timeSec.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false})}
+                                {timeMin.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) +
+                                    ":" + timeSec.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false})}
                             </span>:
                             <span style ={{color: 'red', fontWeight: 'bold', fontSize: 18, display: showTimeUp? 'flex': 'none'}}>
                                 Time up
@@ -362,111 +426,155 @@ export default class App extends Component{
                     <h3 style = {{color: 'blue'}}>ADDING A MEMBER</h3>
                 </div>
                 {errorMessage &&
-                <p style = {{color: 'red'}}>{errorMessage}</p>}
+                    <p style = {{color: 'red'}}>{errorMessage}</p>}
                 <div style={{marginTop: 70, display: 'flex'}}>
                     <div>
                         <input
+                            className={'form-control'}
                             placeholder={"Member's first name"}
                             type="text"
                             onChange={(event) => this.handleChange(event)}/>
                     </div>
                     <div style = {{marginLeft: 20}}>
-                        <button onClick={() => this.addMember()} style={{color: 'white', backgroundColor: 'green'}}>
+                        <button onClick={() => this.addMember()} className={'btn btn-success'}>
                             Add
                         </button>
                     </div>
                 </div>
                 <div style={{margin: 30}}>
                     <button
-                        onClick={() => this.setState({isAdding: false})}
-                        style={{color: 'white', backgroundColor: 'red'}}>
+                        className={'btn btn-danger'}
+                        onClick={() => this.setState({isAdding: false})}>
                         Cancel
                     </button>
                 </div>
             </div>
         )
 
-        if(loading){
-            return(
-                <div style = {{margin: 100}}>
-                    <div style = {{color: 'indianred', fontWeight: 'bold', margin: 15, textAlign: 'center'}}>
-                        <h3>Drawing...</h3>
-                    </div>
-                    <img src="https://media.giphy.com/media/Ps8XflhsT5EVa/giphy.gif" alt="this slowpoke moves" />
+        let welcomeScreen = (
+            <div style={{margin: 30, textAlign: 'center'}}>
+                <h2>Welcome to the stand-up draw system</h2>
+                <h6>Please choose your team or create a new team to get started.</h6>
+                <br/>
+                <div style={styles.names}>
+                    <select className={'form-select-lg'}
+                            onChange={(event) => this.handleGenChange(event, 'selectedTeam')}>
+                        <option value="">Select a team</option>
+                        {this.state.drawTeams.map((team, index) => (
+                            <option key={index} value={team.name}>{team.name}</option>
+                        ))}
+                    </select>
                 </div>
-            )
-        }
-        if(isAdding){
-            return addingMember
-        }
-        return (
-            <div style = {styles.content}>
-                <h2 style = {{color: 'indianred'}}>
-                    Welcome to the STIPAD stand-up draw!
+                <div style={{marginTop: 70, display: 'flex', justifyContent: "center"}}>
+                    <div>
+                        <input
+                            className={'form-control'}
+                            value={newTeamName}
+                            placeholder={"Enter your team name"}
+                            type="text"
+                            onChange={(event) => this.handleGenChange(event, 'newTeamName')}/>
+                    </div>
+                    <div style={{marginLeft: 20}}>
+                        <button className={'btn btn-success'} disabled={!newTeamName} onClick={() => this.beginTeamCreation()}
+                                >
+                            Create new team list
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+
+        let drawScreen = (
+            <div style={styles.content}>
+                <h2 style={{color: 'indianred'}}>
+                    {`Welcome to the ${selectedTeam} stand-up draw!`}
                 </h2>
-                {displayDraw?
+                {displayDraw ?
                     <div>
                         <h4 style={{color: 'blue'}}>
                             {`The order of the stand-up for today (${dateToday}) is: `}
                         </h4>
                         {showDraw}
-                    </div>:
+                    </div> :
                     <div>
                         <h4 style={{color: 'blue'}}>First take the presence, then click on Draw !</h4>
-                        { listWithPresence.length > 0 ?
-                        <div>
-                            {showTeam}
-                        </div>:
+                        {listWithPresence.length > 0 ?
+                            <div>
+                                {showTeam}
+                            </div> :
                             <h6>
                                 The list of members will be displayed here
                             </h6>
                         }
                     </div>}
-                {!displayDraw?
-                    <div style = {{display:'flex'}}>
+                {!displayDraw ?
+                    <div style={{display: 'flex'}}>
                         <div>
-                            <button style={styles.buttonStyle} onClick={() => this.draw()}>
+                            <button className={'btn btn-success'} style={styles.buttonStyle} onClick={() => this.draw()}>
                                 Draw
                             </button>
                         </div>
                         <div>
-                            <button style={styles.buttonStyle} onClick={() => this.setState({isAdding: true, errorMessage: ''})}>
+                            <button className={'btn btn-dark'} style={styles.buttonStyle}
+                                    onClick={() => this.setState({isAdding: true, errorMessage: ''})}>
                                 Add member
                             </button>
                         </div>
                         <div>
-                            <button style={{...styles.buttonStyle, backgroundColor:'red'}}
-                                    onClick={() => this.setState({listWithPresence: []})}>
-                                Delete the list
+                            <button className={'btn btn-danger'} style={{...styles.buttonStyle}}
+                                    onClick={() => this.setState({selectedTeam: '', newTeamName: ''})}>
+                                Home screen
                             </button>
                         </div>
                     </div> :
                     <div>
                         <button
-                            style={{...styles.buttonStyle, backgroundColor:'red'}}
+                            className={'btn btn-danger'}
+                            style={{...styles.buttonStyle}}
                             onClick={() => this.standUpDone()}>
                             Done
                         </button>
                         <button
+                            className={'btn btn-success'}
                             disabled={timeSec + timeMin <= 0}
-                            style={{...styles.buttonStyle, backgroundColor:isClockRunning? 'red': 'green'}}
-                            onClick={() => !isClockRunning? this.setSpeakingTime(): this.pauseSpeakers()}>
-                            {isClockRunning? "Pause": "Start"}
+                            style={{...styles.buttonStyle}}
+                            onClick={() => !isClockRunning ? this.setSpeakingTime() : this.pauseSpeakers()}>
+                            {isClockRunning ? "Pause" : "Start"}
                         </button>
                         <button
-                            style={{...styles.buttonStyle, backgroundColor:'green'}}
+                            className={'btn btn-success'}
+                            style={{...styles.buttonStyle}}
                             onClick={() => this.nextSpeaker()}>
                             Next
                         </button>
                         <button
-                            style={{...styles.buttonStyle, backgroundColor:'orange'}}
+                            className={'btn btn-danger'}
+                            style={{...styles.buttonStyle,}}
                             onClick={() => this.resetTime()}>
                             Reset timer
                         </button>
                     </div>
-                    }
+                }
             </div>
-        );
+        )
+
+        if (loading) {
+            return (
+                <div style={{margin: 100}}>
+                    <div style={{color: 'indianred', fontWeight: 'bold', margin: 15, textAlign: 'center'}}>
+                        <h3>Drawing...</h3>
+                    </div>
+                    <img src="https://media.giphy.com/media/Ps8XflhsT5EVa/giphy.gif" alt="this slowpoke moves"/>
+                </div>
+            )
+        }
+        if (isAdding) {
+            return addingMember
+        }
+        if(selectedTeam){
+            return drawScreen
+        }
+        return welcomeScreen
     }
 }
 
@@ -477,10 +585,7 @@ const styles = {
     },
     buttonStyle: {
         margin: 20,
-        backgroundColor: 'green',
-        height: 32,
-        color: 'white',
-        width: 120
+
     },
     names: {
         borderWidth: 1,
