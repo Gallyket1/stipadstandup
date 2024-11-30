@@ -520,7 +520,7 @@ export default class App extends Component{
                         </h4>
                         {showDraw}
                     </div> :
-                    <div style={{justifyContent: 'center', textAlign: "center"}}>
+                    <div style={{}}>
                         <h4>
                             {filteredTeam.length > 0 ? 'First take the presence, then click on Draw !' : 'Please add members to the team'}
                         </h4>
