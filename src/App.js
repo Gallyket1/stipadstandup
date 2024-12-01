@@ -297,12 +297,10 @@ export default class App extends Component{
         localStorage.setItem("StipadList", JSON.stringify(list));
     }
 
-    updtePresence = (stipId, event) => {
-        let presenceStatus = event.target.value
-        console.log(presenceStatus)
+    updtePresence = (stipId) => {
         let clonedListWithPresence = [...this.state.listWithPresence]
-        let memberInMofif = clonedListWithPresence.filter(member => member.stipId === stipId)[0];
-        memberInMofif.present = presenceStatus;
+        let memberInMofif = clonedListWithPresence.find(member => member.stipId === stipId);
+        memberInMofif.present = memberInMofif.present === 'present' ? 'absent' : 'present';
         this.setState({
             listWithPresence: clonedListWithPresence
         })
@@ -385,7 +383,7 @@ export default class App extends Component{
     render() {
         let dateToday = moment().format("DD-MM-YYYY");
         let {displayDraw, listWithPresence, loading, isAdding, errorMessage,
-            timeSec, timeMin, isClockRunning, showTimeUp, indexForBold, newTeamName, selectedTeam} = this.state;
+            timeSec, timeMin, isClockRunning, showTimeUp, indexForBold, newTeamName, selectedTeam, newMember} = this.state;
         let warningTime = timeMin === 0 && timeSec < 30
         let filteredTeam = listWithPresence.filter(x => x.teamName === selectedTeam)
         let showTeam = filteredTeam.map((member, index) =>
@@ -396,20 +394,37 @@ export default class App extends Component{
                     </span>
                 </div>
                 <div style={styles.names}>
-                    <select
+                    <div className="form-check form-switch">
+                        <input
+                            className="form-check-input"
+                            type="checkbox"
+                            style={{cursor: "pointer"}}
+                            id={`switch-${member.stipId}`}
+                            checked={member.present === "present"}
+                            onChange={(event) =>
+                                this.updtePresence(member.stipId)
+                            }
+                        />
+                        <label style={{color : member.present === 'present' ? '' : "red"}} className="form-check-label" htmlFor={`switch-${member.stipId}`}>
+                            {member.present === "present" ? "P" : "A"}
+                        </label>
+                    </div>
+                    {/*<select
                         className={'form-select-sm'}
                         defaultValue={member.present}
-                        onChange={(event) => {this.updtePresence(member.stipId, event)}}>
+                        onChange={(event) => {
+                            this.updtePresence(member.stipId, event)
+                        }}>
                         <option value={"present"}>present</option>
                         <option value={"absent"}>absent</option>
-                    </select>
+                    </select>*/}
                     <br/>
                 </div>
                 <span onClick={() => this.deleteMember(member.stipId)}
                       title={"Delete"}
                       style={{cursor: "pointer", fontWeight: indexForBold === member.stipId ? "bold" : ""}}
                       onMouseMove={() => this.setState({indexForBold: member.stipId})}
-                      onMouseLeave={() => this.setState({indexForBold:''})}
+                      onMouseLeave={() => this.setState({indexForBold: ''})}
                 >
                     {indexForBold === member.stipId ? 'X' : 'x'}
                 </span>
@@ -450,6 +465,7 @@ export default class App extends Component{
                 <div style={{marginTop: 70, display: 'flex'}}>
                     <div>
                         <input
+                            value={newMember}
                             style={{width: 500}}
                             className={'form-control'}
                             placeholder={"Member's first names separated by commas"}
@@ -464,7 +480,7 @@ export default class App extends Component{
                         Cancel
                     </button>
                     <div style={{marginLeft: 20}}>
-                        <button onClick={() => this.addMember()} className={'btn btn-success'}>
+                        <button disabled={!newMember} onClick={() => this.addMember()} className={'btn btn-success'}>
                             Add
                         </button>
                     </div>
@@ -483,7 +499,7 @@ export default class App extends Component{
                                 this.handleGenChange(event, 'selectedTeam');
                                 this.storeTeamName(event)
                             }}>
-                        <option value="">Select a team</option>
+                        <option value="">Select an existing team</option>
                         {this.state.drawTeams.map((team, index) => (
                             <option key={index} value={team.name}>{team.name}</option>
                         ))}
@@ -522,7 +538,7 @@ export default class App extends Component{
                     </div> :
                     <div style={{}}>
                         <h4>
-                            {filteredTeam.length > 0 ? 'First take the presence, then click on Draw !' : 'Please add members to the team'}
+                            {filteredTeam.length > 0 ? 'First take the presence using the switch, then click on Draw!' : 'Please add members to the team'}
                         </h4>
                         {filteredTeam.length > 0 ?
                             <div>
@@ -536,7 +552,7 @@ export default class App extends Component{
                 {!displayDraw ?
                     <div style={{display: 'flex'}}>
                         <div>
-                            <button disabled={filteredTeam.length === 0} className={'btn btn-success'} style={styles.buttonStyle} onClick={() => this.draw()}>
+                            <button disabled={filteredTeam.length === 0} className={'btn btn-primary'} style={styles.buttonStyle} onClick={() => this.draw()}>
                                 <i className="fa fa-random" aria-hidden="true"></i>
                                 &nbsp;
                                 Draw
@@ -564,6 +580,8 @@ export default class App extends Component{
                             className={'btn btn-danger'}
                             style={{...styles.buttonStyle}}
                             onClick={() => this.standUpDone()}>
+                            <i className="fa fa-check" aria-hidden="true"></i>
+                            &nbsp;
                             Done
                         </button>
                         <button
@@ -571,18 +589,24 @@ export default class App extends Component{
                             disabled={timeSec + timeMin <= 0}
                             style={{...styles.buttonStyle}}
                             onClick={() => !isClockRunning ? this.setSpeakingTime() : this.pauseSpeakers()}>
+                            {isClockRunning ? <i className="fa fa-pause"></i> : <i className="fa fa-play"></i>}
+                            &nbsp;
                             {isClockRunning ? "Pause" : "Start"}
                         </button>
                         <button
                             className={'btn btn-success'}
-                            style={{...styles.buttonStyle}}
+
                             onClick={() => this.nextSpeaker()}>
+                            <i className="fa fa-arrow-right"></i>
+                            &nbsp;
                             Next
                         </button>
                         <button
                             className={'btn btn-danger'}
                             style={{...styles.buttonStyle,}}
                             onClick={() => this.resetTime()}>
+                            <i className="fa fa-refresh"></i>
+                            &nbsp;
                             Reset timer
                         </button>
                     </div>
@@ -616,7 +640,7 @@ const styles = {
         alignItems: 'center',
     },
     buttonStyle: {
-        margin: 20,
+        margin: 10,
 
     },
     names: {
