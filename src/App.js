@@ -386,7 +386,15 @@ export default class App extends Component{
             timeSec, timeMin, isClockRunning, showTimeUp, indexForBold, newTeamName, selectedTeam, newMember} = this.state;
         let warningTime = timeMin === 0 && timeSec < 30
         let filteredTeam = listWithPresence.filter(x => x.teamName === selectedTeam)
-        let showTeam = filteredTeam.map((member, index) =>
+        let showTeam = filteredTeam
+            .sort((a, b) => {
+                const aIsFilip = a.name && a.name.trim().toLowerCase() === 'filip';
+                const bIsFilip = b.name && b.name.trim().toLowerCase() === 'filip';
+                if (aIsFilip && !bIsFilip) return 1;
+                if (!aIsFilip && bIsFilip) return -1;
+                return 0;
+            })
+            .map((member, index) =>
             <div style={{flexDirection: 'row', display: 'flex', flex: 1, }} key={index}>
                 <div style={styles.names}>
                     <span style = {{fontWeight: 'bold', color: member.present === 'absent'? 'red': 'black'}}>
